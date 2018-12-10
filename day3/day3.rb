@@ -51,3 +51,17 @@ claims = parse_claims
 record_claims!(claims, fabric)
 puts count_multi_claim(fabric)
 
+def non_overlapping_claim?(claim, fabric)
+  (claim.top..claim.bottom).each do |y|
+    (claim.left..claim.right).each do |x|
+      return false unless fabric[x][y] == 1
+    end
+  end
+  true
+end
+
+def find_claim(claims, fabric)
+  claims.detect { |claim| non_overlapping_claim?(claim, fabric) }
+end
+
+puts find_claim(claims, fabric)
