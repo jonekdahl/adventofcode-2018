@@ -69,6 +69,21 @@ def optimal_minute(shifts)
   minutes.index(minutes.max)
 end
 
+def most_sleepy_minute(shifts)
+  sleep_times = shifts.group_by(&:guard).map do |guard, shifts|
+    minutes = Array.new(60) { 0 }
+    shifts.each do |shift|
+      shift.sleep_minutes.each { |min| minutes[min] += 1 }
+    end
+    {guard: guard, minutes: minutes}
+  end
+  max_guard = sleep_times.max { |h1, h2| h1[:minutes].max <=> h2[:minutes].max }
+  {
+    guard: max_guard[:guard],
+    minute: max_guard[:minutes].index(max_guard[:minutes].max)
+  }
+end
+
 events = parse_events.sort_by(&:time)
 shifts = parse_shifts(events)
 
@@ -76,3 +91,6 @@ sleepiest_guard_shifts = sleepiest_guard(shifts)
 puts "Sleepiest guard: #{sleepiest_guard_shifts[0]} (#{sleepiest_guard_shifts[2]} minutes in total)"
 optimal_minute = optimal_minute(sleepiest_guard_shifts[1])
 puts "Optimal minute: #{optimal_minute}"
+
+sleepiest_minute = most_sleepy_minute(shifts)
+puts "Guard #{sleepiest_minute[:guard]} was most frequently asleep on minute #{sleepiest_minute}"
