@@ -106,3 +106,17 @@ end
 polymer = File.open('polymer.txt').each_line.first.chomp
 reacted = trigger_reaction(polymer)
 puts "Units remaining after reaction: #{reacted.size}"
+
+def reduce_polymer(polymer, *units)
+  +"".tap { |reduced| polymer.each_char { |c| reduced << c unless units.include?(c) } }
+end
+
+def optimal_polymer(polymer)
+  reacted_polymers = ('a'..'z').zip("A".."Z").map do |units|
+    reduced_polymer = reduce_polymer(polymer, *units)
+    trigger_reaction(reduced_polymer)
+  end
+  reacted_polymers.min { |a, b| a.size <=> b.size }
+end
+
+puts "The shortest possible polymer has #{optimal_polymer(polymer).size} units"
