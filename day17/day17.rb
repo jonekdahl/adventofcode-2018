@@ -1,4 +1,10 @@
+# frozen_string_literal: true
+
 require 'byebug'
+require 'ruby-prof'
+require 'stackprof'
+require 'memory_profiler'
+require 'set'
 
 Position = Struct.new(:x, :y) do
   def down!
@@ -141,7 +147,7 @@ class Scan
 
   def open?(x, y)
     return true if y > @y_max
-    @free ||= ['.', '|'].freeze
+    @free ||= ['.', '|'].to_set.freeze
     @free.include?(at(x, y))
   end
 
@@ -210,7 +216,16 @@ end
 
 
 scan = parse_scan
-scan.run
-puts "#{scan}"
+#result = RubyProf.profile(measure_mode: RubyProf::WALL_TIME) do
+#profile = StackProf.run(mode: :cpu, out: '/tmp/stackprof-cpu-day17.dump') do
+#report = MemoryProfiler.report do
+  scan.run
+#end
+
+#RubyProf::FlatPrinter.new(result).print(STDOUT, :min_percent => 2) # ruby-prof
+#report.pretty_print # memory profiler
+
+
+#puts "#{scan}"
 puts "#{scan.count_water} water squares in total"
 puts "#{scan.count_water_at_rest} water squares at rest"
