@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'byebug'
+require 'memory_profiler'
 
 IMMUNE_SYSTEM = "Immune System"
 INFECTION = "Infection"
@@ -23,18 +24,19 @@ end
 
 class Simulation
   def initialize(armies)
-    @immune_system = armies[IMMUNE_SYSTEM]
-    @infection = armies[INFECTION]
+    @immune_system = armies[IMMUNE_SYSTEM].map(&:dup)
+    @infection = armies[INFECTION].map(&:dup)
   end
 
-  def run
+  def run(boost)
+    @immune_system.each { |group| group.attack_damage += boost }
     until @immune_system.empty? || @infection.empty?
-      print_armies
+      #print_armies
       fight
       @immune_system.select! { |group| group.units.positive? }
       @infection.select! { |group| group.units.positive? }
     end
-    @immune_system.any? ? @immune_system.sum(&:units) : @infection.sum(&:units)
+    @immune_system.any? ? [IMMUNE_SYSTEM, @immune_system.sum(&:units)] : [INFECTION, @infection.sum(&:units)]
   end
 
   def print_armies
@@ -48,7 +50,7 @@ class Simulation
 
   def fight
     selected_targets = select_targets
-    puts
+    #puts
     attack(selected_targets)
   end
 
@@ -56,17 +58,17 @@ class Simulation
     attackers = (@immune_system + @infection).sort_by { |g| [-g.effective_power, -g.initiative] }
     targets = attackers.clone
     attackers.map do |attacker|
-      target, _ = targets.reject  { |target| target.army == attacker.army }
-                         .map     do |target|
+      target, _ = targets.map do |target|
+                           next if target.army == attacker.army
                            damage = damage(attacker, target)
-                           puts "#{attacker.army} group #{attacker.count} would deal defending group #{target.count} #{damage} damage"
+                           #puts "#{attacker.army} group #{attacker.count} would deal defending group #{target.count} #{damage} damage"
+                           next if damage == 0
                            [target, damage]
                          end
-                         .reject  { |_, damage| damage == 0 }
-                         .tap     { |target, damage|   }
+                         .tap     { |ary| ary.compact! }
                          .sort_by { |target, damage| [-damage, -target.effective_power, -target.initiative] }
                          .first
-      next unless target
+     next unless target
 
       targets.delete(target)
       [attacker, target]
@@ -79,7 +81,7 @@ class Simulation
       next unless attacker.units.positive?
 
       units_lost = target.take_damage(damage(attacker, target))
-      puts "#{attacker.army} group #{attacker.count} attacks defending group #{target.count}, killing #{units_lost} units"
+      #puts "#{attacker.army} group #{attacker.count} attacks defending group #{target.count}, killing #{units_lost} units"
     end
   end
 
@@ -138,7 +140,19 @@ def parse_armies
   armies
 end
 
+def sim(armies, boost)
+  Simulation.new(armies).run(boost)
+end
+
+winning_army = nil
 armies = parse_armies
-simulation = Simulation.new(armies)
-winning_units_remaining = simulation.run
-puts "The winning army has #{winning_units_remaining} units remaining"
+boost = 31 # at boost 30, there was a stand-off causing the simulation to run forever
+
+until winning_army == IMMUNE_SYSTEM
+  winning_army, units_remaining = *sim(armies, boost)
+  puts "With boost #{boost}, the #{winning_army} has #{units_remaining} units remaining"
+  boost += 1
+end
+
+
+
